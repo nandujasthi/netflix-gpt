@@ -1,12 +1,23 @@
 import React, { useRef, useState } from "react";
 import Header from "./Header";
 import { formValidation } from "../utils/formvalidations";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
 
 const Login = () => {
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // const name = useRef(null);
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
   const submitForm = () => {
@@ -15,6 +26,66 @@ const Login = () => {
       password.current.value
     );
     setErrorMessage(validationMessage);
+    if (validationMessage) return;
+
+    // Sign up and Sign In logic
+
+    if (!isSignInForm) {
+      //Sign Up Logic
+      createUserWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed up
+          const user = userCredential.user;
+          setErrorMessage(user.email + "Signed up Succesfully");
+          updateProfile(user, {
+            displayName: name.current.value,
+            photoURL: "https://i.stack.imgur.com/RYE45.jpg?s=64&g=1",
+          })
+            .then(() => {
+              console.log(auth, "Check for Auth");
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+              navigate("/browse");
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
+    } else {
+      // Sign In Logic
+      signInWithEmailAndPassword(
+        auth,
+        email.current.value,
+        password.current.value
+      )
+        .then((userCredential) => {
+          // Signed in
+          const user = userCredential.user;
+          console.log(user);
+          navigate("/browse");
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(errorCode + "-" + errorMessage);
+        });
+    }
   };
   const toggleSigninform = () => {
     setIsSignInForm(!isSignInForm);
@@ -35,6 +106,7 @@ const Login = () => {
               </h1>
               {!isSignInForm && (
                 <input
+                  ref={name}
                   type="text"
                   placeholder="Full Name"
                   className="p-3 my-2 bg-stone-800 bg-opacity-70 rounded w-full text-white placeholder:text-stone-300"
