@@ -45,7 +45,6 @@ const Login = () => {
             photoURL: USER_IMAGE,
           })
             .then(() => {
-              console.log(auth, "Check for Auth");
               const { uid, email, displayName, photoURL } = auth.currentUser;
               dispatch(
                 addUser({
@@ -75,7 +74,6 @@ const Login = () => {
         .then((userCredential) => {
           // Signed in
           const user = userCredential.user;
-          console.log(user);
         })
         .catch((error) => {
           const errorCode = error.code;
